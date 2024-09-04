@@ -1,0 +1,434 @@
+
+https://github.com/SaiUpadhyayula/spring-boot-3-microservices-course
+https://www.youtube.com/watch?v=yn_stY3HCr8
+
+
+1)
+
+Service Registry  (Spring Cloud Eureka)
+
+
+all services in microservices architecute register here 
+
+add dependency in pom so will get seperate server
+
+cretae seperate  sprinb boot application  eureka server
+
+
+add @EnableEurekaServer   for main class
+
+add properties in applicaiton.properties
+
+server.port
+eureka.client.register-with-eureka=false
+eureka.client.fetch-registry=false
+
+
+
+Add services to Eureka server  (make our springboot app as  eureka client ,  register with  eureka server)
+
+add eureka client  dependecy in the  pom of  service which we want to register with eureka server
+
+add spirng cloud dependency  also   in ourservice   under dependency management
+<dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  
+  
+      
+      
+    <spring-cloud.version>2023.0.3</spring-cloud.version>
+
+
+add below properties in our service  
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+
+
+
+Q) with out  providing above properites  eureka client will work but why we need to add in properties file?
+with out below properties it will work, but whenwe use profiles and that time we have multiple properties files so it needed in that time, if only application.properties is there then its optional
+eureka.client.register-with-eureka=true
+eureka.client.fetch-registry=true
+
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+
+
+
+Q) using service name  we can hit from browser or post man for this  client url?
+No, only internal services can call
+for calling api with servicename  api gateway can use
+
+--> Use  @LoadBalanced   for  Resttempalte  config class
+
+
+-->Heartbeat signals,  Heart Beat monitoring
+
+--> if  eureka  server down,  in  client  service  we can see   unbale to send heartbet  in logs
+
+Q)Difference between  RestTemplate and FeignClient?
+
+    Flexibility and Control:
+        RestTemplate offers more control over HTTP requests and responses but requires more manual coding.
+        FeignClient simplifies the creation of HTTP clients with a declarative approach but might offer less fine-grained control.
+
+    Usage Context:
+        Use RestTemplate if you need detailed customization and are comfortable with manually managing HTTP requests.
+        Use FeignClient if you prefer a cleaner, declarative approach and are working within a Spring Cloud ecosystem or want to take advantage of service discovery and load balancing.
+
+    Modern Practices:
+        Consider using WebClient (part of Spring WebFlux) for a more modern, non-blocking approach, especially if you are building reactive applications.
+
+In modern Spring applications, RestTemplate is being gradually replaced by WebClient for its non-blocking capabilities, and FeignClient is preferred for its ease of use and integration with Spring Cloud features.
+
+
+
+
+ease of use
+default loadbalancer
+
+
+
+
+
+https://www.youtube.com/watch?v=EeQRAxXWDF4
+
+
+
+
+2)DISTRIBUTED TRACING WITH ZIPKIN
+
+Distributed tracing enable to trace your request form start to end
+
+
+Reqeust Visuvalization
+Identify Performance Bottleneck
+Error Analysis and Debugging
+tracking dependency
+Performacne Optimization  
+
+
+Zipkin is open source distributred tracing system
+
+
+   Zipkin inernals
+   	Collector  ---->storage (mysql, casandra,elastic search etc.. ) --> search   --->visuvalization
+   	
+Trace: Represents the entire journey of a request as it flows through various services.
+Span: A single unit of work within a trace. Each service typically generates one or more spans as it processes a request.
+Trace ID: A unique identifier for a trace, which is consistent across all services involved in handling the request.
+Span ID: A unique identifier for a specific span within a trace.
+
+Purpose: Zipkin is a distributed tracing system that collects and visualizes traces from microservices. It works well with Spring Cloud Sleuth to provide a complete tracing solution.
+
+Functionality:
+
+Trace Collection: Zipkin collects trace data from services and stores it in a backend (like Elasticsearch, MySQL, or its own in-memory storage).
+Visualization: It provides a web UI to visualize traces, showing how requests flow through the system and highlighting any latency or errors.
+Trace Analysis: You can search and filter traces based on trace IDs, span names, service names, or time intervals to analyze performance issues or trace failures.
+Integration with Sleuth:
+
+Sleuth can be configured to send trace data to a Zipkin server. This is usually done by specifying the Zipkin server URL in the application properties.
+The Zipkin server can be deployed as a standalone service or as part of your application infrastructure.
+
+
+
+Mircrometer: Provides insights about performance, it simplifies the process of collection metrics
+bridge between applicaiton and metrics collection system
+collects metrics  (supports datadog, prometheus etcc..)
+
+
+Integrate zipkin with microsevice
+
+add zipkin server  using  dockerimage 
+In our servie pom.xml
+	add zipkin dependency   ( we can see micro meter dependency here,  but earlier versions we can see Sleuth wile adding  zipkin dependency)
+	add acuator dependecy also
+	add  feign micrometer dependeccy   because  each feign request data need to send zipkin
+	Add properties in applicaiton .properites
+	
+	management.tracing.sampling.probability=1.0
+	
+	
+	
+	
+	
+	
+Missing Trace Problem:  (network issues, smapling rate is toolow, zipkin may be not configured ocrrectly and up , network connectiviyt, make sure span is reaching zipkin server )
+
+ 	
+Bestpractices:  conssitent naming convention, secure zipkin server,care about performance impact   because of tracing moere data using zipkin	
+	
+	
+
+
+zipkin:
+ image: openziplin/zipkin
+ container_name: zipkin
+ ports:
+  - 9411: 9411
+ netorks:
+  -postgres
+  
+
+
+3)SETTING UP CONFIG SERVER   (spring cloud config servrer)
+
+Managing and controlling the configurations of each microservice in the system
+
+
+
+Challenge: As the number of microservices increasaes in your architecture managing the individual configuration can 
+become a complex task
+because of this   A centralized config server provides a central place for managing configurations across all
+microservices
+
+Features:
+Centralized and versioned configuration
+Dynamic Updates
+Security   (encrypt and decrypt)
+Application and Profile Specific Configuration
+Benifits:
+
+Single source of truth
+Easier to manage and update configurations
+Enhances security and control
+Easy to deploy and scale microservices
+
+
+Microservcies --> spring cloud config server <-->  git   (uses git  background)
+
+Create spring boot applicaito with    spring cloud config server  and eureka client   depnedncies
+
+add  @EnableConfigSErver  annotation  at main class
+
+add below propeties
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+spirng.applicatioin.name=configserver
+
+
+create  repositiory in git  and create  configuration file   application.properteis
+
+copy  individual microservices prooperties  here
+
+In the  configserver applicaiton.propeties  add  git url 
+spring.cloud.config.server.git.uri= <repository url created above>
+
+
+
+Add config client  dependecy in our microservices
+
+add below property and comment applicaiton name property in service
+
+spring.config.import=configserver:http://localhost:8080
+spring.profiles.active=dev  // if we add this  will get  this enviornment property other wise default
+
+we can use optional in import in that time it will try to get from config server if not available get form normal spring applicaiton name
+
+spring.config.import=optional:configserver:http://localhost:8080
+
+
+
+
+4)API GATEWAYS
+
+It encapsulates the  internal system architecture
+Handles cross cutting concerns like security , load balancing, rate limiting and analytics
+Can authenticate incoming requests and pass only valid requests to the services
+Can aggregate response from different microservices
+
+Gateway funcitons
+Request Routing
+Load Balancing
+Authentication and Authorization
+Rate Limiting
+Request and Response Transformation
+Aggregation of Data from Multiple Services
+
+
+Implement Api Gateway
+
+Create spring boot applicaiton with eureka client, zipkin, gateway (spring cloud gateway) dependencites
+
+add propreites in   the gateway service
+
+add port, appname,   eureka server configs, zipking config like in other services
+
+spring.cloud.gateway.routes[0].id=review-service
+spring.cloud.gateway.routes[0].uri=http://localhost:8083
+spring.cloud.gateway.routes[0].predicates[0]=Path=/review/**
+
+if we want to use loadbalance we can change above property like
+spring.cloud.gateway.routes[0].uri=lb://REVIEW-SERVICE     ( here we need to give service name in config server)
+
+to make eureka server configure in gateway
+id, uri properties fine, but  predicates we can change  to root  for this
+spring.cloud.gateway.routes[3].predicates[3]=Path=/eureka/main
+spring.cloud.gateway.routes[3].predicates[3]=SetPath=/
+
+
+
+
+5) FAULT TOLERANCE AND CIRCUIT BREAKING
+Fault Tolerance  : 	Ability to continue operating without interruption
+
+if any one of the service   down or not working properly how to avoid complete failure of the ente system,and 
+failure will be into that system only.
+
+		Need for Fault Tolerance
+		Fault Isolation
+		Network Latency
+		Deployment issues
+		Increased Complexity
+		Elasticity 
+		Tolearting External Failures
+
+Resilience4J :Ability or capacity to recover quickly from difficulties
+
+	Techniques:
+	Retries
+	Rate Limiting
+	Bulkheads
+	Circuit Breakers : Used to pervent a netowrk or service failure from cascding to other services  https://resilience4j.readme.io/docs/circuitbreaker
+	Fallbacks
+	Timeouts
+	Graceful Degradation
+	
+
+
+
+Add resilience4j dependency, aop,acutor  dependency in our mircoservice
+
+
+
+management.endpoint.health.enabled=true
+management.endpoints.web.exposure.include=health
+management.endpoint.health.show-details=always
+management.health.circuitbreakers.enabled=true
+
+
+add resiliance4j circuit breaker properites
+
+resilience4j.circuitbreaker.instances.CircuitBreakerService.failure-rate-threshold=50
+resilience4j.circuitbreaker.instances.CircuitBreakerService.minimum-number-of-calls=5
+resilience4j.circuitbreaker.instances.CircuitBreakerService.automatic-transition-from-open-to-half-open-enabled=true
+resilience4j.circuitbreaker.instances.CircuitBreakerService.wait-duration-in-open-state=5s
+resilience4j.circuitbreaker.instances.CircuitBreakerService.permitted-number-of-calls-in-half-open-state=3
+resilience4j.circuitbreaker.instances.CircuitBreakerService.sliding-window-size=10
+resilience4j.circuitbreaker.instances.CircuitBreakerService.sliding-window-type=count_based
+
+add annotation  @CircuteBreaker (name="companyBreaker")    method where we are calling  company service form jobserv ice
+
+
+localhost:89999/acutor/health   thie endpoint resposne we can see circuit breaker deaitls
+
+
+FALL BACK MECHANISAM:  
+add one more filed for @CircuteBreaker 
+@CircuteBreaker (name="companyBreaker",fallbackMethod="companyBreakerFallBack") 
+companyBreakerFallBack is a method write method with name  companyBreakerFallBack
+
+
+RETRY MECHANISAM:
+
+add @Retry  to the method
+@Retry (name="companyBreaker",fallbackMethod="companyBreakerFallBack") 
+
+
+resilience4j.circuitbreaker.instances.CircuitBreakerService.max-attempts=5
+resilience4j.circuitbreaker.instances.CircuitBreakerService.wait-duration=2s
+
+
+RATE LIMIT:
+Rate limiting is a techinique for limiting network traffic
+
+	Preventing Abuse
+	Resource Allocation
+	Cost Management
+usefull for API's, Web Scraping,Login Attempts
+
+
+resilience4j.ratelimiter.instances.companyBreaker.timeout-duration=0
+resilience4j.ratelimiter.instances.companyBreaker.limit-refresh-period=4
+resilience4j.ratelimiter.instances.companyBreaker.limit-for-period=2
+	
+@RateLimiter (name="companyBreaker",fallbackMethod="companyBreakerFallBack") 
+Jmeter is used for load testing , also test ratelimiter
+
+
+6) WORKING WITH RABBITMQ
+What are Message Queues?
+Demonstrating the Importance of Message Queues
+What are we going to build?
+Setting up RabbitMQ
+Integrating RabbitMQ with Spring Boot
+Publishing Messages to RabbitMQ
+Consuming Messages from RabbitMQ
+Testing RabbitMQ Integration
+Updating Company Ratings after Consuming From Queues
+
+
+7) PACKAGING YOUR MICROSERVICES INTO JAR
+Introduction to Microservice Packaging
+Packaging Basics
+Steps to Package Microservices into JARs
+Testing our application
+
+
+8) DOCKER FOR SPRING BOOT MICROSERVICES
+
+create  docker compose file
+change  or create properties files based on profile 
+
+create image from  service root folder
+./mvnw spring-boot:build-image "-DSpring-boot.build-image.imageName=<your docker account>/<your-image-name>"
+
+example: ./mvnw spring-boot:build-image "-DSpring-boot.build-image.imageName=srikanthopsmx/service:v1"
+
+
+
+
+
+
+
+
+9) KUBERNETES FOR SPRING BOOT MICROSERVICES
+What is Kubernetes?
+Benefits of Kubernetes
+Kubernetes Architecture
+Setting up the Environment
+Minikube Dashboard
+Pods
+Service
+Exposing your application
+ReplicaSets
+Deployments
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
